@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>The Trip Orchestrator</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -101,6 +100,16 @@
   .afternote p:last-child { margin-bottom: 0; }
   .afternote .p-close { font-size: 15px; font-style: italic; color: var(--ink-faint); margin-top: 4px; }
 
+  .chain-grid { display: flex; gap: 40px; flex-wrap: wrap; margin: 22px 0 28px; }
+  .chain { flex: 1 1 240px; }
+  .chain-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 14px; }
+  .chain ol { list-style: none; margin: 0; padding: 0; }
+  .chain li { position: relative; padding: 9px 12px; border-radius: 5px; font-family: var(--font-mono); font-size: 13px; text-align: center; margin-bottom: 24px; }
+  .chain li:last-child { margin-bottom: 0; }
+  .chain li:not(:last-child)::after { content: "↓"; position: absolute; left: 50%; transform: translateX(-50%); bottom: -23px; color: var(--ink-faint); font-size: 13px; }
+  .chain.trip li { background: var(--blue-soft); border: 1px solid var(--blue); color: var(--ink); }
+  .chain.task li { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+
   .tiers { display: flex; gap: 14px; flex-wrap: wrap; margin: 8px 0 6px; }
   .tier { flex: 1 1 170px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--ink-faint); border-radius: 3px; padding: 16px 16px 18px; }
   .tier.nonblocking { border-left-color: var(--green); }
@@ -168,8 +177,8 @@
 <nav class="toc">
   <div class="toc-label">Contents</div>
   <ol>
-    <li><a href="#loop">01 · The reasoning loop</a></li>
-    <li><a href="#pillars">02 · Three pillars — Reasoning, Memory, Tools</a></li>
+    <li><a href="#pillars">01 · Three pillars — Reasoning, Memory, Tools</a></li>
+    <li><a href="#loop">02 · The reasoning loop</a></li>
     <li><a href="#tiers">03 · Talking to the traveller — autonomy tiers</a></li>
     <li><a href="#stack">04 · The system, stitched together</a></li>
     <li><a href="#planning">05 · Inside Planning</a></li>
@@ -185,8 +194,107 @@
 
 <main>
 
+  <section id="pillars">
+    <div class="section-head"><span class="section-num">01</span><h2>Three pillars</h2></div>
+    <p class="section-intro">The architecture rests on two distinct representations, coordinated by the orchestrator rather than owned by either one alone.</p>
+
+    <div class="chain-grid">
+      <div class="chain trip">
+        <div class="chain-label">Trip Graph — the traveller's journey</div>
+        <ol>
+          <li>Flight</li>
+          <li>Airport Transfer</li>
+          <li>Hotel</li>
+          <li>Activity</li>
+          <li>Train</li>
+          <li>Hotel</li>
+          <li>Return Flight</li>
+        </ol>
+      </div>
+      <div class="chain task">
+        <div class="chain-label">Task Graph — the orchestrator's work</div>
+        <ol>
+          <li>Understand Intent</li>
+          <li>Identify Missing Information</li>
+          <li>Construct Trip</li>
+          <li>Validate Trip</li>
+          <li>Search Options</li>
+          <li>Obtain Approval</li>
+          <li>Book Components</li>
+          <li>Prepare Traveller</li>
+          <li>Monitor Trip</li>
+          <li>Handle Disruptions</li>
+        </ol>
+      </div>
+    </div>
+
+    <p class="section-intro">The Trip Graph holds destinations, transport, accommodation, activities, timing, dependencies, and commitments — what should happen to the traveller. The Task Graph holds every unit of work needed to make that happen — what the orchestrator does, not what the traveller experiences. The distinction is fundamental: one describes the journey, the other describes the work. The orchestrator's whole job is coordinating both.</p>
+
+    <p class="section-intro">Three different kinds of thing make that coordination possible — Reasoning, Memory, Tools — and the boundary between them is the one rule that keeps the system legible as it grows. What they add up to is a loop, covered next (§02).</p>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="p-eyebrow">Reasoning</div>
+        <h3>Judgment, held nowhere</h3>
+        <p class="p-terms">Reconciler · Classifier · Prioritizer · Autonomy gate · Dispatch · Clarification</p>
+        <p class="p-close">Carries no state between cycles. Everything it needs, it reads fresh.</p>
+      </div>
+      <div class="pillar">
+        <div class="p-eyebrow">Memory</div>
+        <h3>What persists</h3>
+        <p class="p-terms">Desired state · Actual state · Commitment state · Task graph · Decision log · Traveller preferences</p>
+        <p class="p-close">Inert. It answers questions; it never asks one.</p>
+      </div>
+      <div class="pillar">
+        <div class="p-eyebrow">Tools</div>
+        <h3>Stateless executors</h3>
+        <p class="p-terms">Planning · Sourcing &amp; Booking · Pre-Trip Prep · Monitoring · Post-Trip</p>
+        <p class="p-close">One slice each, a fixed function set, never calls another tool.</p>
+      </div>
+    </div>
+
+    <p class="pd-soc"><strong>Reasoning's separation of concern:</strong> the only place judgment happens. It never touches a supplier, a document, or a booking system directly — its job is to decide, using what Memory holds and what a Tool reports back.</p>
+    <div class="table-wrap">
+      <table class="dtable">
+        <tr><th class="key">Part</th><th>What it does</th><th>Example</th></tr>
+        <tr><td class="key">Reconciler</td><td>Diffs Desired against Actual against Commitment for the affected Trip Graph node, then walks outward along its edges to see how far the divergence reaches — the single, bounded scope everything downstream reacts to.</td><td>Flight now lands 6:15pm, not 3:15pm → diffed against Commitment's 3:30pm transfer, then walked along the edge toward Day 2's cruise. Output: a bounded scope, not just "the flight is late."</td></tr>
+        <tr><td class="key">Classifier</td><td>Sorts a divergence into exactly one category, which alone decides what happens next: <strong>absorbable</strong> (slack covers it), <strong>correctable</strong> (a fix restores the shape), <strong>structural</strong> (the shape itself no longer fits).</td><td>3h delay with slack = absorbable. Same delay hitting a paid cruise = correctable (Planning rebooks, shape holds). 8h delay costing the connecting flight = structural (Planning must pick a different shape).</td></tr>
+        <tr><td class="key">Prioritizer</td><td>Gate-then-score across every open task — hard disqualifiers first, then a weighted score on survivors. Never one multiplicative formula.</td><td>"Confirm the cruise" gates in as urgent (real money, real deadline); "suggest a cooking class" is scored, not gated — it can wait a day without being dropped.</td></tr>
+        <tr><td class="key">Autonomy gate</td><td>Sets the tier — Inform, Recommend, Confirm, Auto, Escalate — from irreversibility and financial exposure (§03).</td><td>Moving a free, refundable transfer = Auto. Rebooking a non-refundable cruise for +₹1,200 = Confirm.</td></tr>
+        <tr><td class="key">Dispatch</td><td>Takes a Task Graph node and routes it to the component that acts on the Trip Graph nodes it touches. Doesn't do the work, only routes it.</td><td>A revised-schedule need routes to Planning; securing a specific flight routes to Sourcing &amp; Booking.</td></tr>
+        <tr><td class="key">Clarification</td><td>A component hands back a question instead of a result; only the core decides how to resolve it — memory, benchmark data, the traveller, or another component. The asker never learns which.</td><td>Missing origin city → ask the traveller. Missing passport expiry → ask the traveller. Missing flight cost → ask Sourcing &amp; Booking (§05, §07). Same mechanism, three resolutions.</td></tr>
+      </table>
+    </div>
+
+    <p class="pd-soc" style="margin-top:32px;"><strong>Memory's separation of concern:</strong> total, from Reasoning. Memory holds facts; Reasoning holds judgment about them. It never initiates anything.</p>
+    <p class="pd-soc">Concretely, in Memory: a Trip Graph node carries its Desired, Actual, and Commitment attributes together, connected by edges recording what depends on what. A Task Graph node references which Trip Graph node(s) it touches — narrow, broad, or propagating, below.</p>
+    <div class="table-wrap">
+      <table class="dtable">
+        <tr><th class="key">Store</th><th>What it holds</th><th>Example</th></tr>
+        <tr><td class="key">Desired state</td><td>What the traveller wants — objectives, preferences, constraints.</td><td><code>Vietnam · 7 days · ₹2,00,000 total · 2 travellers · October</code> — written the instant intent is stated.</td></tr>
+        <tr><td class="key">Actual state</td><td>What's actually true right now, at whatever confidence the last read allows.</td><td><code>AI 2436 — landing 6:15pm (was 3:15pm) — confirmed 4 min ago</code>. The timestamp is what lets the Reconciler judge staleness, not just status.</td></tr>
+        <tr><td class="key">Commitment state</td><td>What's locked in for a node — booked, paid, at what cancellation cost — plus its position in the sequence: what it follows.</td><td><code>Ha Long cruise — ₹8,500pp — non-refundable — Day 2, 1pm — follows: Day 1 transfer + hotel check-in</code>. The cancellation cost is what's at stake if the edge below runs out of slack.</td></tr>
+        <tr><td class="key">Edges</td><td>The dependencies between Trip Graph nodes — what a divergence in one node can reach, and how far. Built by Planning (§05, Step 8) when the days are sequenced, not inferred after the fact.</td><td><code>Flight → Transfer (zero slack, always retimed) → Day 2 cruise (slack: ~14h)</code>. A 3h delay never reaches the cruise edge; an 8h one does.</td></tr>
+        <tr><td class="key">Task graph</td><td>Every unit of work, referencing which Trip Graph node(s) it touches — narrow (one node), broad (the whole graph), or propagating (walks outward along edges from one node).</td><td><code>SEARCH_OPTIONS</code>: narrow, touches one Flight node. <code>VALIDATE_TRIP</code>: broad, spans the whole graph. <code>HANDLE_DISRUPTIONS</code>: propagating, walks from Flight outward until slack absorbs it.</td></tr>
+        <tr><td class="key">Decision log</td><td>Why a past action was taken — makes "verify outcome" mean something.</td><td><code>transfer moved to 9:15pm — reason: AI 2436 delayed 3h, absorbable, Auto tier</code>.</td></tr>
+        <tr><td class="key">Traveller preferences</td><td>The one store that outlives this trip.</td><td><code>kept: cruise, lantern class · skipped: night market</code> — read by Planning before a single new preference is asked for again.</td></tr>
+      </table>
+    </div>
+
+    <p class="pd-soc" style="margin-top:32px;"><strong>Tools' separation of concern:</strong> narrower than either of the other two. One bounded thing each, a fixed function set, and never a decision on whether it should run — that's Dispatch's call, always. Full depth for each is in §05–09.</p>
+    <div class="table-wrap">
+      <table class="dtable">
+        <tr><th class="key">Tool</th><th>What it does</th><th>Note</th></tr>
+        <tr><td class="key"><a href="#planning">Planning →§05</a></td><td>Turns an envelope into a trip structure.</td><td>Destination, coverage, routing, days — never touches a supplier.</td></tr>
+        <tr><td class="key"><a href="#booking">Sourcing &amp; Booking →§06</a></td><td>Turns one specific need into a secured commitment.</td><td>This flight, this hotel — gated then scored on what's scarce for this trip.</td></tr>
+        <tr><td class="key"><a href="#preptrip">Pre-Trip Prep →§07</a></td><td>Confirms fitness to depart.</td><td>Visa rules, passport validity — a hard blocker escalates immediately.</td></tr>
+        <tr><td class="key"><a href="#monitoring-detail">Monitoring →§08</a></td><td>Watches, continuously, without being asked.</td><td>The only tool subscribed to, not dispatched to (§04).</td></tr>
+        <tr><td class="key"><a href="#posttrip">Post-Trip →§09</a></td><td>Closes the loop.</td><td>Reconciles spend, writes what to keep in Traveller preferences.</td></tr>
+      </table>
+    </div>
+  </section>
+
   <section id="loop">
-    <div class="section-head"><span class="section-num">01</span><h2>The reasoning loop</h2></div>
+    <div class="section-head"><span class="section-num">02</span><h2>The reasoning loop</h2></div>
     <p class="section-intro">The central question isn't answered by a pipeline that runs once per trip. It's a cycle the orchestrator re-enters every time something changes — a new input, a supplier event, a clock tick, a finished task. Most passes through the cycle end almost immediately: nothing has actually diverged, so nothing happens. The two branches below are where that changes — where a real divergence is found, and where the traveller has to be the one who decides.</p>
 
     <figure class="diagram">
@@ -274,69 +382,6 @@
     </div>
   </section>
 
-  <section id="pillars">
-    <div class="section-head"><span class="section-num">02</span><h2>Three pillars</h2></div>
-    <p class="section-intro">The loop above is the <strong>behavior</strong>. Underneath it sit three different kinds of thing that make that behavior possible — the boundary between them is the one rule that keeps the system legible as it grows.</p>
-    <div class="pillars">
-      <div class="pillar">
-        <div class="p-eyebrow">Reasoning</div>
-        <h3>Judgment, held nowhere</h3>
-        <p class="p-terms">Reconciler · Classifier · Prioritizer · Autonomy gate · Dispatch · Clarification</p>
-        <p class="p-close">Carries no state between cycles. Everything it needs, it reads fresh.</p>
-      </div>
-      <div class="pillar">
-        <div class="p-eyebrow">Memory</div>
-        <h3>What persists</h3>
-        <p class="p-terms">Desired state · Actual state · Commitment state · Task graph · Decision log · Traveller preferences</p>
-        <p class="p-close">Inert. It answers questions; it never asks one.</p>
-      </div>
-      <div class="pillar">
-        <div class="p-eyebrow">Tools</div>
-        <h3>Stateless executors</h3>
-        <p class="p-terms">Planning · Sourcing &amp; Booking · Pre-Trip Prep · Monitoring · Post-Trip</p>
-        <p class="p-close">One slice each, a fixed function set, never calls another tool.</p>
-      </div>
-    </div>
-
-    <p class="pd-soc"><strong>Reasoning's separation of concern:</strong> the only place judgment happens. It never touches a supplier, a document, or a booking system directly — its job is to decide, using what Memory holds and what a Tool reports back.</p>
-    <div class="table-wrap">
-      <table class="dtable">
-        <tr><th class="key">Part</th><th>What it does</th><th>Example</th></tr>
-        <tr><td class="key">Reconciler</td><td>Diffs Desired against Actual against Commitment; produces the divergence, if any — the single fact everything downstream reacts to.</td><td>Flight now lands 6:15pm, not 3:15pm → diffed against Commitment's 3:30pm transfer. Output: "the transfer no longer matches reality," not "the flight is late."</td></tr>
-        <tr><td class="key">Classifier</td><td>Sorts a divergence into exactly one category, which alone decides what happens next: <strong>absorbable</strong> (slack covers it), <strong>correctable</strong> (a fix restores the shape), <strong>structural</strong> (the shape itself no longer fits).</td><td>3h delay with slack = absorbable. Same delay hitting a paid cruise = correctable (Planning rebooks, shape holds). 8h delay costing the connecting flight = structural (Planning must pick a different shape).</td></tr>
-        <tr><td class="key">Prioritizer</td><td>Gate-then-score across every open task — hard disqualifiers first, then a weighted score on survivors. Never one multiplicative formula.</td><td>"Confirm the cruise" gates in as urgent (real money, real deadline); "suggest a cooking class" is scored, not gated — it can wait a day without being dropped.</td></tr>
-        <tr><td class="key">Autonomy gate</td><td>Sets the tier — Inform, Recommend, Confirm, Auto, Escalate — from irreversibility and financial exposure (§03).</td><td>Moving a free, refundable transfer = Auto. Rebooking a non-refundable cruise for +₹1,200 = Confirm.</td></tr>
-        <tr><td class="key">Dispatch</td><td>Picks which capability handles the task. Doesn't do the work, only routes it.</td><td>A revised-schedule need routes to Planning; securing a specific flight routes to Sourcing &amp; Booking.</td></tr>
-        <tr><td class="key">Clarification</td><td>A component hands back a question instead of a result; only the core decides how to resolve it — memory, benchmark data, the traveller, or another component. The asker never learns which.</td><td>Missing origin city → ask the traveller. Missing passport expiry → ask the traveller. Missing flight cost → ask Sourcing &amp; Booking (§05, §07). Same mechanism, three resolutions.</td></tr>
-      </table>
-    </div>
-
-    <p class="pd-soc" style="margin-top:32px;"><strong>Memory's separation of concern:</strong> total, from Reasoning. Memory holds facts; Reasoning holds judgment about them. It never initiates anything.</p>
-    <div class="table-wrap">
-      <table class="dtable">
-        <tr><th class="key">Store</th><th>What it holds</th><th>Example</th></tr>
-        <tr><td class="key">Desired state</td><td>What the traveller wants — objectives, preferences, constraints.</td><td><code>Vietnam · 7 days · ₹2,00,000 total · 2 travellers · October</code> — written the instant intent is stated.</td></tr>
-        <tr><td class="key">Actual state</td><td>What's actually true right now, at whatever confidence the last read allows.</td><td><code>AI 2436 — landing 6:15pm (was 3:15pm) — confirmed 4 min ago</code>. The timestamp is what lets the Reconciler judge staleness, not just status.</td></tr>
-        <tr><td class="key">Commitment state</td><td>What's locked in — booked, paid, and at what cancellation cost.</td><td><code>Ha Long cruise — ₹8,500pp — non-refundable — Day 2, 1pm</code>. The cancellation cost is why a colliding delay classifies differently than one that doesn't.</td></tr>
-        <tr><td class="key">Task graph</td><td>Every task, and whether it's active, paused, or done.</td><td><code>confirm cruise — active · check passport — active · choose restaurant — done</code>. What the Prioritizer gates and scores against.</td></tr>
-        <tr><td class="key">Decision log</td><td>Why a past action was taken — makes "verify outcome" mean something.</td><td><code>transfer moved to 9:15pm — reason: AI 2436 delayed 3h, absorbable, Auto tier</code>.</td></tr>
-        <tr><td class="key">Traveller preferences</td><td>The one store that outlives this trip.</td><td><code>kept: cruise, lantern class · skipped: night market</code> — read by Planning before a single new preference is asked for again.</td></tr>
-      </table>
-    </div>
-
-    <p class="pd-soc" style="margin-top:32px;"><strong>Tools' separation of concern:</strong> narrower than either of the other two. One bounded thing each, a fixed function set, and never a decision on whether it should run — that's Dispatch's call, always. Full depth for each is in §05–09.</p>
-    <div class="table-wrap">
-      <table class="dtable">
-        <tr><th class="key">Tool</th><th>What it does</th><th>Note</th></tr>
-        <tr><td class="key"><a href="#planning">Planning →§05</a></td><td>Turns an envelope into a trip structure.</td><td>Destination, coverage, routing, days — never touches a supplier.</td></tr>
-        <tr><td class="key"><a href="#booking">Sourcing &amp; Booking →§06</a></td><td>Turns one specific need into a secured commitment.</td><td>This flight, this hotel — gated then scored on what's scarce for this trip.</td></tr>
-        <tr><td class="key"><a href="#preptrip">Pre-Trip Prep →§07</a></td><td>Confirms fitness to depart.</td><td>Visa rules, passport validity — a hard blocker escalates immediately.</td></tr>
-        <tr><td class="key"><a href="#monitoring-detail">Monitoring →§08</a></td><td>Watches, continuously, without being asked.</td><td>The only tool subscribed to, not dispatched to (§04).</td></tr>
-        <tr><td class="key"><a href="#posttrip">Post-Trip →§09</a></td><td>Closes the loop.</td><td>Reconciles spend, writes what to keep in Traveller preferences.</td></tr>
-      </table>
-    </div>
-  </section>
-
   <section id="tiers">
     <div class="section-head"><span class="section-num">03</span><h2>Talking to the traveller</h2></div>
     <p class="section-intro">There's no separate notification system bolted on the side. The <strong>autonomy gate</strong> is the only place the loop decides to involve a person, and the tier it picks <em>is</em> the message. A traveller's response is not a special input — it re-enters the loop at the top, as an ordinary trigger, same as a flight-status webhook.</p>
@@ -399,7 +444,7 @@
         <rect x="200" y="140" width="640" height="76" rx="10" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="1.6"/>
         <text x="520" y="170" font-family="var(--font-display)" font-size="19" font-weight="700" text-anchor="middle" fill="var(--ink)">Reasoning core</text>
         <text x="520" y="195" font-family="var(--font-mono)" font-size="11.5" text-anchor="middle" fill="var(--ink-soft)">reconciler · classifier · prioritizer · autonomy gate · dispatch</text>
-        <text x="520" y="210" font-family="var(--font-mono)" font-style="italic" font-size="10" text-anchor="middle" fill="var(--ink-faint)">— full cycle in §01 —</text>
+        <text x="520" y="210" font-family="var(--font-mono)" font-style="italic" font-size="10" text-anchor="middle" fill="var(--ink-faint)">— full cycle in §02 —</text>
         <g stroke="var(--ink-soft)" stroke-width="1.3" fill="none">
           <line x1="520" y1="216" x2="520" y2="255" marker-end="url(#arrow2)"/>
           <polyline points="160,255 880,255"/>
@@ -785,5 +830,3 @@
   </footer>
 
 </main>
-
-</body></html>
