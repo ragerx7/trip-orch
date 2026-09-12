@@ -1,0 +1,461 @@
+<title>Dry Run</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #EDF0F5; --surface: #FFFFFF; --surface-2: #E1E6EE;
+    --ink: #171B22; --ink-soft: #565F6E; --ink-faint: #8A93A2; --line: #C7CEDB;
+    --blue: #2C4A8C; --blue-soft: #DFE6F5;
+    --amber: #B15E1E; --amber-soft: #F3E2CC;
+    --green: #2C6B4C; --green-soft: #D9EBE1;
+    --font-display: "Big Shoulders Display", sans-serif;
+    --font-body: "Newsreader", Georgia, serif;
+    --font-mono: "IBM Plex Mono", "SF Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12151B; --surface: #191D25; --surface-2: #222732;
+      --ink: #E7EAF1; --ink-soft: #A2AAB9; --ink-faint: #6B7280; --line: #323A48;
+      --blue: #8CA8E8; --blue-soft: #223054;
+      --amber: #E39A54; --amber-soft: #452D16;
+      --green: #6BC095; --green-soft: #1B3A2A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #12151B; --surface: #191D25; --surface-2: #222732;
+    --ink: #E7EAF1; --ink-soft: #A2AAB9; --ink-faint: #6B7280; --line: #323A48;
+    --blue: #8CA8E8; --blue-soft: #223054;
+    --amber: #E39A54; --amber-soft: #452D16;
+    --green: #6BC095; --green-soft: #1B3A2A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+  code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 48px; }
+
+  header { margin-bottom: 20px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px,4vw,40px); margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-soft); font-size: 15.5px; margin: 0; max-width: 68ch; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 8px; }
+  .scenario-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button.scn {
+    font-family: var(--font-mono); font-size: 12.5px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-soft); padding: 8px 13px; border-radius: 20px;
+    cursor: pointer; transition: all .15s;
+  }
+  button.scn:hover { border-color: var(--ink-faint); color: var(--ink); }
+  button.scn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .variant-toggle { display: none; gap: 6px; margin-left: 4px; }
+  .variant-toggle.show { display: flex; }
+  button.vt {
+    font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--ink-soft); padding: 6px 10px; border-radius: 14px; cursor: pointer;
+  }
+  button.vt.active { background: var(--amber); border-color: var(--amber); color: #fff; }
+
+  .playback { display: flex; gap: 8px; margin-left: auto; }
+  button.pb {
+    font-family: var(--font-mono); font-size: 12.5px; border: 1px solid var(--ink); background: var(--ink);
+    color: var(--paper); padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  }
+  button.pb.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  button.pb:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .progress { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); margin: 6px 0 18px; }
+
+  .stage {
+    display: grid; grid-template-columns: 1fr 64px 1fr 64px 1fr;
+    align-items: stretch; gap: 0; margin-bottom: 20px;
+  }
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px; min-height: 340px; display: flex; flex-direction: column;
+  }
+  .panel-label {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-label .tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: var(--surface-2); color: var(--ink-soft); text-transform: none; letter-spacing: 0; }
+  .panel-body { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+  .msg { border-radius: 6px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; opacity: 0; transform: translateY(4px); animation: rise .35s ease forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .msg.user { background: var(--blue-soft); color: var(--ink); align-self: flex-end; max-width: 92%; }
+  .msg.core { background: var(--surface-2); border-left: 3px solid var(--blue); }
+  .msg.comp { background: var(--surface-2); border-left: 3px solid var(--ink-faint); }
+  .msg .m-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+  .msg .m-stage { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); margin-bottom: 4px; }
+  .msg .m-tier { display: inline-block; font-family: var(--font-mono); font-size: 9.5px; padding: 2px 7px; border-radius: 9px; margin-left: 6px; }
+  .tier-inform, .tier-recommend, .tier-auto { background: var(--green-soft); color: var(--green); }
+  .tier-confirm, .tier-escalate { background: var(--amber-soft); color: var(--amber); }
+
+  .steplist { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .steplist span {
+    font-family: var(--font-mono); font-size: 9.5px; padding: 3px 7px; border-radius: 4px;
+    background: var(--surface-2); color: var(--ink-faint);
+  }
+  .steplist span.on { background: var(--ink); color: var(--paper); font-weight: 600; }
+
+  .connector { display: flex; align-items: center; justify-content: center; position: relative; }
+  .connector .line { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--line); }
+  .chip {
+    position: relative; z-index: 1; font-family: var(--font-mono); font-size: 10px; text-align: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px;
+    max-width: 120%; opacity: 0; transition: opacity .25s;
+  }
+  .chip.show { opacity: 1; }
+  .chip.blue { border-color: var(--blue); color: var(--blue); }
+  .chip.amber { border-color: var(--amber); color: var(--amber); }
+  .chip.green { border-color: var(--green); color: var(--green); }
+  .chip .dir { display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .memory-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .mem-chip {
+    font-family: var(--font-mono); font-size: 11px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 5px; padding: 6px 10px; color: var(--ink-soft);
+  }
+  .mem-chip b { color: var(--ink); font-weight: 600; }
+
+  .trace { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; max-height: 220px; overflow-y: auto; }
+  .trace-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .trace-row { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-soft); padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .trace-row:last-child { border-bottom: none; }
+  .trace-row b { color: var(--ink); }
+
+  .empty { color: var(--ink-faint); font-size: 13px; font-style: italic; margin: auto; text-align: center; }
+
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; }
+    .connector { min-height: 40px; }
+    .connector .line { top: 50%; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Trip Orchestrator — Scripted Simulation</div>
+    <h1>Dry Run</h1>
+    <p class="sub">Five fixed scenarios, played back step by step exactly as <a href="#" style="color:var(--ink-soft)">Next Best Action</a> describes them — which panel is doing the work, what it hands the next one, and why. Not a live model: a rehearsal of the mechanism, built from the same data as the doc's own traces.</p>
+  </header>
+
+  <div class="controls">
+    <div class="scenario-btns" id="scenarioBtns"></div>
+    <div class="variant-toggle" id="variantToggle">
+      <button class="vt active" data-variant="mild">Mild — 3h</button>
+      <button class="vt" data-variant="severe">Severe — 8h</button>
+    </div>
+    <div class="playback">
+      <button class="pb secondary" id="resetBtn">Reset</button>
+      <button class="pb secondary" id="stepBtn">Next ▸</button>
+      <button class="pb" id="playBtn">Play ▶</button>
+    </div>
+  </div>
+  <div class="progress" id="progress"></div>
+
+  <div class="stage">
+    <div class="panel" id="panelUser">
+      <div class="panel-label"><span>Traveller</span></div>
+      <div class="panel-body" id="bodyUser"><div class="empty">Pick a scenario, then Play or Next.</div></div>
+    </div>
+    <div class="connector" id="connUC"><div class="line"></div><div class="chip" id="chipUC"></div></div>
+    <div class="panel" id="panelCore">
+      <div class="panel-label"><span>Reasoning Core</span><span class="tag" id="coreTag">idle</span></div>
+      <div class="panel-body" id="bodyCore"><div class="empty">Waiting for a trigger.</div></div>
+    </div>
+    <div class="connector" id="connCK"><div class="line"></div><div class="chip" id="chipCK"></div></div>
+    <div class="panel" id="panelComp">
+      <div class="panel-label"><span id="compName">Component</span><span class="tag" id="compTag">idle</span></div>
+      <div class="panel-body" id="bodyComp"><div class="empty">No component invoked yet.</div></div>
+    </div>
+  </div>
+
+  <div class="memory-strip" id="memoryStrip"></div>
+
+  <div class="trace">
+    <div class="trace-label">Full trace</div>
+    <div id="traceLog"><div class="trace-row" style="font-style:italic;color:var(--ink-faint)">— nothing run yet —</div></div>
+  </div>
+</div>
+
+<script>
+const STEP_LABELS = {
+  planning:  ["Understand intent","Missing info?","Assemble inputs","Destination graph","Coverage potential","Score attractiveness","Score shapes","Choose activities","Build days"],
+  sourcing:  ["Understand request","Query suppliers","Gate","Score survivors","Flag exposure","Execute","Write commitment","Verify"],
+  pretrip:   ["Read fixed","Document reqs","Check held docs","Gate on blockers","Derive soft-prep","Reconfirm"],
+  monitoring:["Get subscribed","Hold feed","Detect change","Normalize","Push, don't judge","Report silence","Keep going"],
+  posttrip:  ["Trigger","Gather actuals","Reconcile","Notify","Extract preferences","Close task graph"]
+};
+const COMP_NAMES = { planning:"Planning", sourcing:"Sourcing & Booking", pretrip:"Pre-Trip Prep", monitoring:"Monitoring", posttrip:"Post-Trip" };
+
+function u(text){ return {panel:'user', title:text}; }
+function c(stage, title, detail, tier){ return {panel:'core', stage, title, detail, tier}; }
+function k(comp, stepIdx, title, detail){ return {panel:'comp', comp, stepIdx, title, detail}; }
+function arrow(from, to, label, color){ return {arrow:{from,to,label,color}}; }
+function mem(patch){ return {mem:patch}; }
+
+const SCENARIOS = {
+  plan: {
+    label: "Plan a trip",
+    steps: [
+      Object.assign(u('"A budget-friendly trip to Vietnam from Bangalore in October for 2 people."'), {}),
+      Object.assign(c('Trigger','New trigger received', 'Core writes what\'s given to Desired state and reads Traveller preferences.'), arrow('user','core','objectives','blue')),
+      Object.assign(k('planning',1,'Checking hard constraints','Destination ✓ · Origin ✓ · Party ✓ · Duration ✗ · Budget number ✗ — hands back a question.'), arrow('core','comp','dispatch: build initial plan','blue')),
+      Object.assign(c('Autonomy gate','Duration has no substitute','Ask the traveller directly.','inform'), arrow('comp','core','question: duration, budget','blue')),
+      Object.assign(u('"How many days are you thinking?"'), arrow('core','user','clarify','blue')),
+      Object.assign(u('"7 days."'), {}),
+      Object.assign(c('Autonomy gate','Budget: resolve before asking','Check benchmark data — comparable Vietnam trips for 2, 7–8 days, typically run ₹1.8L–2.2L total.','recommend'), {}),
+      Object.assign(u('"I\'d plan around ₹2,00,000 total (₹1L/person) — sound right?"'), arrow('core','user','propose, not ask blind','blue')),
+      Object.assign(u('"Yes, that works."'), mem({Desired:'Vietnam · 7d · ₹2,00,000 · 2 pax'})),
+      Object.assign(k('planning',3,'Destination graph + coverage','7 days, October. North excellent, central risky, south drying (§05 Step 5).'), arrow('core','comp','dispatch, now complete','blue')),
+      Object.assign(k('planning',6,'Scoring shapes — needs a fact it doesn\'t have','Hanoi + Ha Long + Hoi An scores best on paper, but needs real Hanoi↔Hoi An routing cost to confirm.'), {}),
+      Object.assign(c('Dispatch','Relaying to Sourcing & Booking','Planning can\'t call a supplier itself.'), arrow('comp','core','question: routing cost','blue')),
+      Object.assign(k('sourcing',2,'Gate then quote','VietJet HAN→DAD, ₹6,200 return, 1h25m. Within budget, safe connection.'), arrow('core','comp','dispatch: retrieve routing','blue')),
+      Object.assign(k('planning',8,'Building the days','Ha Long Bay cruise (anchor, ₹8,500pp) · Hoi An lantern-making (enhancer) · Old Quarter walk (enhancer) · night market (filler).'), arrow('comp','core','routing: ₹6,200 · 1h25m','blue')),
+      Object.assign(c('Verify · Autonomy gate','First commitment','7 days · Hanoi(3N) + Ha Long(1N) + Hoi An(3N) · ₹1,92,000 total.','confirm'), arrow('comp','core','plan complete','blue')),
+      Object.assign(u('Approve 7-day plan — Hanoi + Ha Long + Hoi An, ₹1,92,000 total?', ), arrow('core','user','surface for approval','blue')),
+      Object.assign(u('"Approved."'), mem({Commitment:'7d plan · ₹1,92,000 · locked'}))
+    ]
+  },
+  delay_mild: {
+    label: "Flight delay", variantOf: 'delay', variant: 'mild',
+    steps: [
+      Object.assign(k('monitoring',2,'Status change detected','BLR→HAN (AI 2436): delayed 3h.'), {}),
+      Object.assign(k('monitoring',4,'Push, don\'t judge','Normalized: +180min. No opinion attached.'), arrow('comp','core','anomaly → new trigger','amber')),
+      Object.assign(c('Reconcile','Checking against Commitment','Airport transfer booked for original time. No fixed anchor before 6pm check-in.'), {}),
+      Object.assign(c('Classify','Absorbable','Slack covers this — Day 1 was built with room for exactly this.'), {}),
+      Object.assign(c('Autonomy gate','Auto tier','Reversible, zero cost. No traveller involvement.','auto'), arrow('core','comp','dispatch: modify transfer','amber')),
+      Object.assign(k('sourcing',6,'Execute + write commitment','Transfer rescheduled to 9:15pm.'), {}),
+      Object.assign(u('"Your flight\'s delayed 3h — we\'ve already moved your airport pickup. Nothing else changes."'), arrow('core','user','inform','green'))
+    ]
+  },
+  delay_severe: {
+    label: "Flight delay", variantOf: 'delay', variant: 'severe',
+    steps: [
+      Object.assign(k('monitoring',2,'Status change detected','BLR→HAN (AI 2436): delayed 8h.'), {}),
+      Object.assign(k('monitoring',4,'Push, don\'t judge','Normalized: +480min. No opinion attached.'), arrow('comp','core','anomaly → new trigger','amber')),
+      Object.assign(c('Reconcile','Checking against Commitment','Ha Long Bay cruise departs 1pm tomorrow — a paid, non-refundable slot.'), {}),
+      Object.assign(c('Classify','Structural','This breaks a fixed anchor event, not just a schedule.'), {}),
+      Object.assign(k('planning',7,'Devise a revised plan','Cruise rebooked for Day 3 (+₹1,200 fee). Day 2 swaps to the Old Quarter walk already planned for Day 4 — no loss.'), arrow('core','comp','dispatch: revise under new constraint','amber')),
+      Object.assign(c('Autonomy gate','Confirm tier','Real cost, changed commitment — the traveller decides.','confirm'), arrow('comp','core','revised plan: +₹1,200','amber')),
+      Object.assign(u('Flight delayed 8h — you\'ll miss tomorrow\'s Ha Long cruise. Rebook for Day 3 (+₹1,200)?'), arrow('core','user','surface for approval','amber')),
+      Object.assign(u('"Approved."'), mem({Commitment:'cruise moved to Day 3 · +₹1,200'}))
+    ]
+  },
+  dinner: {
+    label: "Ask for dinner",
+    steps: [
+      Object.assign(u('"Can you book us dinner tonight at Morning Glory in Hoi An, around 7:30?"'), {}),
+      Object.assign(c('Trigger','A want, not a divergence','Added straight to Desired state — nothing to reconcile against.'), arrow('user','core','new request','blue')),
+      Object.assign(c('Reconcile','Checking this evening','Task Graph shows nothing booked after 6pm. No conflict.'), {}),
+      Object.assign(k('sourcing',2,'Gate then hold','Morning Glory, table for 2, 7:30pm — available, free to hold.'), arrow('core','comp','dispatch — Planning not needed','blue')),
+      Object.assign(k('sourcing',6,'Execute + commitment','Reservation confirmed. No Monitoring subscription — nothing here carries disruption risk.'), {}),
+      Object.assign(u('"Table booked — Morning Glory, 7:30pm, party of 2."'), arrow('core','user','inform','green'))
+    ]
+  },
+  passport: {
+    label: "Passport problem",
+    steps: [
+      Object.assign(c('Trigger','Pre-Trip Prep dispatched','45 days to departure.'), {}),
+      Object.assign(k('pretrip',1,'Document requirements','Vietnam, Indian passport: visa-free ≤45 days, passport valid 6 months beyond return.'), arrow('core','comp','dispatch','blue')),
+      Object.assign(k('pretrip',3,'Hard blocker','Passport expires in 4 months — inside the validity window.'), {}),
+      Object.assign(c('Autonomy gate','Escalate','Threatens the whole trip — doesn\'t wait its turn.','escalate'), arrow('comp','core','question: won\'t clear validity window','blue')),
+      Object.assign(u('"Your passport expires before Vietnam\'s 6-month rule is met. Renew, or reconsider dates?"'), arrow('core','user','escalate directly','amber')),
+      Object.assign(u('"I\'ll renew it this week."'), mem({TaskGraph:'passport renewal — pending, rechecked pre-departure'}))
+    ]
+  },
+  wrapup: {
+    label: "Trip wrap-up",
+    steps: [
+      Object.assign(c('Trigger','Return flight landed','Last anchor event complete.'), {}),
+      Object.assign(k('posttrip',1,'Gather actuals','₹1,92,400 spent vs ₹2,00,000 planned — ₹7,600 under.'), arrow('core','comp','dispatch','blue')),
+      Object.assign(k('posttrip',2,'Reconcile','Under budget — no flag needed, just noted.'), {}),
+      Object.assign(u('"Trip complete! You came in ₹7,600 under budget."'), arrow('core','user','inform','green')),
+      Object.assign(k('posttrip',4,'Extract preferences','Kept: Ha Long cruise (anchor), lantern-making class (enhancer). Skipped: night market food tour (filler).'), {}),
+      Object.assign(k('posttrip',5,'Close task graph','All tasks closed. Monitoring subscriptions released.'), mem({TravellerPreferences:'kept: cruise, lantern class · skipped: night market'}))
+    ]
+  }
+};
+
+let currentKey = 'plan';
+let idx = -1;
+let playTimer = null;
+let memoryState = {};
+
+const scenarioBtnsEl = document.getElementById('scenarioBtns');
+const TOP_LEVEL = [
+  {key:'plan', label:SCENARIOS.plan.label},
+  {key:'delay', label:'Flight delay'},
+  {key:'dinner', label:SCENARIOS.dinner.label},
+  {key:'passport', label:SCENARIOS.passport.label},
+  {key:'wrapup', label:SCENARIOS.wrapup.label}
+];
+let delayVariant = 'mild';
+
+TOP_LEVEL.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'scn' + (s.key === 'plan' ? ' active' : '');
+  b.textContent = s.label;
+  b.dataset.key = s.key;
+  b.addEventListener('click', () => selectTopLevel(s.key));
+  scenarioBtnsEl.appendChild(b);
+});
+document.querySelectorAll('.vt').forEach(b => {
+  b.addEventListener('click', () => {
+    delayVariant = b.dataset.variant;
+    document.querySelectorAll('.vt').forEach(x => x.classList.toggle('active', x === b));
+    selectScenario('delay_' + delayVariant);
+  });
+});
+
+function selectTopLevel(key) {
+  document.querySelectorAll('#scenarioBtns .scn').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  document.getElementById('variantToggle').classList.toggle('show', key === 'delay');
+  if (key === 'delay') selectScenario('delay_' + delayVariant);
+  else selectScenario(key);
+}
+
+function selectScenario(key) {
+  currentKey = key;
+  idx = -1;
+  memoryState = {};
+  clearInterval(playTimer); playTimer = null;
+  document.getElementById('playBtn').textContent = 'Play ▶';
+  render(true);
+}
+
+function componentColor(comp) { return comp === 'monitoring' ? 'amber' : 'ink'; }
+
+function renderStepList(comp, activeIdx) {
+  const labels = STEP_LABELS[comp];
+  return '<div class="steplist">' + labels.map((l,i) => `<span class="${i===activeIdx?'on':''}">${l}</span>`).join('') + '</div>';
+}
+
+function tierClass(t){ return t ? `m-tier tier-${t}` : ''; }
+
+function appendMsg(container, html) {
+  const empty = container.querySelector('.empty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  container.appendChild(div.firstElementChild);
+  container.scrollTop = container.scrollHeight;
+}
+
+function flashChip(zoneId, dir, label, color) {
+  const chip = document.getElementById(zoneId);
+  chip.className = 'chip show ' + (color||'blue');
+  chip.innerHTML = `<span class="dir">${dir}</span>${label}`;
+  clearTimeout(chip._t);
+  chip._t = setTimeout(() => chip.classList.remove('show'), 2600);
+}
+
+function updateMemoryStrip() {
+  const strip = document.getElementById('memoryStrip');
+  strip.innerHTML = '';
+  const order = ['Desired','Actual','Commitment','TaskGraph','TravellerPreferences'];
+  const labelMap = {Desired:'Desired',Actual:'Actual',Commitment:'Commitment',TaskGraph:'Task graph',TravellerPreferences:'Traveller prefs'};
+  order.forEach(k => {
+    if (memoryState[k]) {
+      const c = document.createElement('div');
+      c.className = 'mem-chip';
+      c.innerHTML = `<b>${labelMap[k]}:</b> ${memoryState[k]}`;
+      strip.appendChild(c);
+    }
+  });
+}
+
+function reset() {
+  document.getElementById('bodyUser').innerHTML = '<div class="empty">Pick a scenario, then Play or Next.</div>';
+  document.getElementById('bodyCore').innerHTML = '<div class="empty">Waiting for a trigger.</div>';
+  document.getElementById('bodyComp').innerHTML = '<div class="empty">No component invoked yet.</div>';
+  document.getElementById('compName').textContent = 'Component';
+  document.getElementById('coreTag').textContent = 'idle';
+  document.getElementById('compTag').textContent = 'idle';
+  document.getElementById('memoryStrip').innerHTML = '';
+  document.getElementById('traceLog').innerHTML = '<div class="trace-row" style="font-style:italic;color:var(--ink-faint)">— nothing run yet —</div>';
+  document.getElementById('chipUC').className = 'chip';
+  document.getElementById('chipCK').className = 'chip';
+}
+
+function render(isReset) {
+  if (isReset) { reset(); updateProgress(); return; }
+}
+
+function updateProgress() {
+  const scn = SCENARIOS[currentKey];
+  document.getElementById('progress').textContent = `Step ${Math.max(idx+1,0)} of ${scn.steps.length}`;
+  document.getElementById('stepBtn').disabled = idx >= scn.steps.length - 1;
+}
+
+function traceLine(step) {
+  const log = document.getElementById('traceLog');
+  const first = log.querySelector('div[style]');
+  if (first) first.remove();
+  const row = document.createElement('div');
+  row.className = 'trace-row';
+  let who = step.panel === 'user' ? 'Traveller' : step.panel === 'core' ? 'Reasoning Core' : COMP_NAMES[step.comp];
+  row.innerHTML = `<b>${who}</b> — ${step.title || step.detail || ''}`;
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+function playStep() {
+  const scn = SCENARIOS[currentKey];
+  if (idx >= scn.steps.length - 1) { clearInterval(playTimer); playTimer = null; document.getElementById('playBtn').textContent = 'Play ▶'; return; }
+  idx++;
+  const step = scn.steps[idx];
+
+  if (step.arrow) {
+    const dirGlyph = (from,to) => (from==='comp') ? '◂' : '▸';
+    if ((step.arrow.from==='user'&&step.arrow.to==='core') || (step.arrow.from==='core'&&step.arrow.to==='user')) {
+      flashChip('chipUC', step.arrow.from==='user' ? '▸' : '◂', step.arrow.label, step.arrow.color);
+    } else {
+      flashChip('chipCK', step.arrow.from==='core' ? '▸' : '◂', step.arrow.label, step.arrow.color);
+    }
+  }
+
+  if (step.panel === 'user') {
+    appendMsg(document.getElementById('bodyUser'), `<div class="msg user"><div class="m-title">${step.title}</div></div>`);
+  } else if (step.panel === 'core') {
+    document.getElementById('coreTag').textContent = step.stage || 'active';
+    let tierHtml = step.tier ? `<span class="${tierClass(step.tier)}">${step.tier}</span>` : '';
+    appendMsg(document.getElementById('bodyCore'), `<div class="msg core"><div class="m-stage">${step.stage||''}</div><div class="m-title">${step.title}${tierHtml}</div><div>${step.detail||''}</div></div>`);
+  } else if (step.panel === 'comp') {
+    document.getElementById('compName').textContent = COMP_NAMES[step.comp];
+    document.getElementById('compTag').textContent = STEP_LABELS[step.comp][step.stepIdx];
+    const body = document.getElementById('bodyComp');
+    if (!body.dataset.comp || body.dataset.comp !== step.comp) {
+      body.innerHTML = '';
+      body.dataset.comp = step.comp;
+    }
+    const existingList = body.querySelector('.steplist');
+    if (existingList) existingList.remove();
+    body.insertAdjacentHTML('afterbegin', renderStepList(step.comp, step.stepIdx));
+    appendMsg(body, `<div class="msg comp"><div class="m-title">${step.title}</div><div>${step.detail||''}</div></div>`);
+  }
+
+  if (step.mem) {
+    Object.assign(memoryState, step.mem);
+    updateMemoryStrip();
+  }
+
+  traceLine(step);
+  updateProgress();
+}
+
+document.getElementById('stepBtn').addEventListener('click', () => { clearInterval(playTimer); playTimer=null; document.getElementById('playBtn').textContent='Play ▶'; playStep(); });
+document.getElementById('resetBtn').addEventListener('click', () => selectScenario(currentKey));
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; document.getElementById('playBtn').textContent = 'Play ▶'; return; }
+  document.getElementById('playBtn').textContent = 'Pause ❚❚';
+  playTimer = setInterval(() => {
+    const scn = SCENARIOS[currentKey];
+    if (idx >= scn.steps.length - 1) { clearInterval(playTimer); playTimer = null; document.getElementById('playBtn').textContent = 'Play ▶'; return; }
+    playStep();
+  }, 1900);
+});
+
+selectScenario('plan');
+</script>
